@@ -1,0 +1,89 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: order-service
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:orderdb}
+    username: ${DB_USER:vivaeventos}
+    password: ${DB_PASSWORD:change_me_in_production}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: order-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.vivaeventos.*"
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: com.vivaeventos.orderservice.kafka.event.PaymentEvent
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      payment-service:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+  retry:
+    instances:
+      payment-service:
+        max-attempts: 3
+        wait-duration: 1s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.vivaeventos.orderservice: DEBUG
+
+kafka:
+  topics:
+    order-created: order.created
+    order-confirmed: order.confirmed
+    order-cancelled: order.cancelled
+    payment-confirmed: payment.confirmed
+    payment-failed: payment.failed
+    payment-pending: payment.pending
+
+event-service:
+  url: ${EVENT_SERVICE_URL:http://localhost:8081}
+
+feign:
+  client:
+    config:
+      event-service:
+        connectTimeout: 3000
+        readTimeout: 5000
+
+eureka:
+  client:
+    enabled: false
