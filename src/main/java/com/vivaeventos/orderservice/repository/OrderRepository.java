@@ -28,7 +28,7 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
     /**
      * Obtiene todas las órdenes CONFIRMADAS de un evento específico.
-     * Solo las confirmadas representan ventas reales (US-10, criterio 1).
+     * Solo las confirmadas representan ventas reales (criterio 1).
      *
      * @param eventId  UUID del evento
      * @param status   estado de la orden (se pasa "CONFIRMED")
@@ -74,6 +74,84 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
               AND o.status = :status
             """)
     BigDecimal sumRevenueByEventId(
+            @Param("eventId") UUID eventId,
+            @Param("status") String status
+    );
+    /**
+     * Obtiene ventas agrupadas por tipo de boleta para un evento.
+     * Permite al organizador ver cuántas boletas GENERAL, VIP y STUDENT se vendieron.
+     *
+     * Criterio "el sistema debe mostrar métricas"
+     *
+     * Retorna una lista de arrays donde:
+     * - [0] = ticketType (String)
+     * - [1] = cantidad de órdenes (Long)
+     * - [2] = total de boletas vendidas (Integer)
+     * - [3] = ingresos por ese tipo (BigDecimal)
+     *
+     * @param eventId UUID del evento
+     * @param status  estado de la orden (se pasa "CONFIRMED")
+     */
+    @Query("""
+            SELECT o.ticketType,
+                   COUNT(o),
+                   COALESCE(SUM(o.quantity), 0),
+                   COALESCE(SUM(o.totalAmount), 0)
+            FROM Order o
+            WHERE o.eventId = :eventId
+              AND o.status = :status
+            GROUP BY o.ticketType
+            ORDER BY o.ticketType
+            """)
+    List<Object[]> findSalesByTicketType(
+            @Param("eventId") UUID eventId,
+            @Param("status") String status
+    );
+
+    /**
+     * Obtiene ventas agrupadas por hora del día para un evento.
+     * Permite identificar en qué horas se concentran las ventas (tendencias).
+     *
+     * Criterio: "dado que el organizador analiza datos entonces debe ver tendencias"
+     *
+     * Retorna una lista de arrays donde:
+     * - [0] = hora del día 0-23 (Integer)
+     * - [1] = cantidad de órdenes en esa hora (Long)
+     * - [2] = total de boletas vendidas en esa hora (Integer)
+     *
+     * @param eventId UUID del evento
+     * @param status  estado de la orden (se pasa "CONFIRMED")
+     */
+    @Query("""
+            SELECT FUNCTION('hour', o.createdAt),
+                   COUNT(o),
+                   COALESCE(SUM(o.quantity), 0)
+            FROM Order o
+            WHERE o.eventId = :eventId
+              AND o.status = :status
+            GROUP BY FUNCTION('hour', o.createdAt)
+            ORDER BY FUNCTION('hour', o.createdAt)
+            """)
+    List<Object[]> findSalesByHour(
+            @Param("eventId") UUID eventId,
+            @Param("status") String status
+    );
+
+    /**
+     * Calcula el valor promedio de una orden para un evento.
+     * Útil para entender el ticket promedio de compra.
+     *
+     * @param eventId UUID del evento
+     * @param status  estado de la orden (se pasa "CONFIRMED")
+     * @return promedio del totalAmount, null si no hay órdenes
+     */
+    @Query("""
+            SELECT AVG(o.totalAmount)
+            FROM Order o
+            WHERE o.eventId = :eventId
+              AND o.status = :status
+            """)
+    BigDecimal findAverageOrderValue(
             @Param("eventId") UUID eventId,
             @Param("status") String status
     );
