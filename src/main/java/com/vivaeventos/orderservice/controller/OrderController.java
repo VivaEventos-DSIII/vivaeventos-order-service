@@ -1,14 +1,15 @@
 package com.vivaeventos.orderservice.controller;
 
 import com.vivaeventos.orderservice.dto.CreateOrderRequest;
+import com.vivaeventos.orderservice.dto.EventSalesResponse;
+import com.vivaeventos.orderservice.dto.EventStatisticsResponse;
 import com.vivaeventos.orderservice.dto.OrderResponse;
+import com.vivaeventos.orderservice.dto.RefundRequest;
 import com.vivaeventos.orderservice.service.OrderService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.vivaeventos.orderservice.dto.EventSalesResponse;
-import com.vivaeventos.orderservice.dto.EventStatisticsResponse;
 
 import java.util.UUID;
 
@@ -22,79 +23,51 @@ public class OrderController {
         this.service = service;
     }
 
-    // US-04 criterio 1: crear orden — recibe DTO, nunca la entidad directa
     @PostMapping
     public ResponseEntity<OrderResponse> create(@Valid @RequestBody CreateOrderRequest request) {
-        OrderResponse response = service.createOrder(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.createOrder(request));
     }
 
-    // US-04 testabilidad: consultar estado de una orden
     @GetMapping("/{id}")
     public ResponseEntity<OrderResponse> getById(@PathVariable UUID id) {
-        OrderResponse response = service.getOrderById(id);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.getOrderById(id));
     }
+
     /**
-     * GET /api/orders/events/{eventId}/sales
+     * POST /api/orders/{id}/refund
      *
-     * Consulta el reporte de ventas de un evento.
-     * Solo accesible para organizadores (el rol se valida en el api-gateway).
+     * Registra la solicitud de devolución de una orden.
      *
-     * @PathVariable eventId → UUID del evento a consultar
-     *
-     * Respuestas posibles:
-     * - HTTP 200 con datos   → hay ventas registradas (criterio 1)
-     * - HTTP 200 sin ventas  → no hay ventas, mensaje informativo (criterio 2)
+     * Criterio 1: "Dado que el evento fue cancelado cuando el cliente solicita
+     *              devolución entonces el sistema debe registrar la solicitud."
      *
      * Ejemplo de llamada:
-     * GET http://localhost:8082/api/orders/events/550e8400-e29b-41d4-a716-446655440000/sales
+     * POST http://localhost:8082/api/orders/550e8400-.../refund
+     * {
+     *   "userEmail": "cliente@email.com",
+     *   "reason": "EVENTO_CANCELADO"
+     * }
+     *
+     * Respuestas:
+     * - 200 OK → solicitud registrada, orden en estado REFUND_REQUESTED
+     * - 404    → orden no encontrada
+     * - 400    → orden no está en estado CONFIRMED
      */
+    @PostMapping("/{id}/refund")
+    public ResponseEntity<OrderResponse> requestRefund(
+            @PathVariable UUID id,
+            @Valid @RequestBody RefundRequest request) {
+        OrderResponse response = service.requestRefund(id, request);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/events/{eventId}/sales")
     public ResponseEntity<EventSalesResponse> getEventSales(@PathVariable UUID eventId) {
-        EventSalesResponse response = service.getEventSales(eventId);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.getEventSales(eventId));
     }
-    /**
-     * GET /api/orders/events/{eventId}/statistics
-     *
-     * Genera estadísticas detalladas de ventas de un evento.
-     * Solo accesible para organizadores (rol validado en api-gateway).
-     *
-     * Diferencia con /sales:
-     * - /sales    → reporte simple: total y número de boletas
-     * - /statistics → análisis completo: tendencias, desglose por tipo, hora pico
-     *
-     * Respuestas posibles:
-     * - HTTP 200 con datos  → hay ventas, devuelve métricas y tendencias
-     * - HTTP 200 sin ventas → no hay ventas, mensaje informativo
-     *
-     * Ejemplo de llamada:
-     * GET http://localhost:8082/api/orders/events/550e8400-e29b-41d4-a716-446655440000/statistics
-     *
-     * Ejemplo de respuesta:
-     * {
-     *   "eventId": "550e8400-...",
-     *   "ticketsSold": 150,
-     *   "totalRevenue": 18000000,
-     *   "totalOrders": 95,
-     *   "averageOrderValue": 189473.68,
-     *   "salesByTicketType": {
-     *     "GENERAL": { "orders": 80, "tickets": 120, "revenue": 14400000 },
-     *     "VIP":     { "orders": 15, "tickets": 30,  "revenue": 3600000  }
-     *   },
-     *   "salesByHour": {
-     *     "10": { "orders": 25, "tickets": 40 },
-     *     "11": { "orders": 45, "tickets": 70 }
-     *   },
-     *   "peakHour": 11,
-     *   "message": "Estadísticas generadas: 150 boletas vendidas..."
-     * }
-     */
+
     @GetMapping("/events/{eventId}/statistics")
-    public ResponseEntity<EventStatisticsResponse> getEventStatistics(
-            @PathVariable UUID eventId) {
-        EventStatisticsResponse response = service.getEventStatistics(eventId);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<EventStatisticsResponse> getEventStatistics(@PathVariable UUID eventId) {
+        return ResponseEntity.ok(service.getEventStatistics(eventId));
     }
 }
