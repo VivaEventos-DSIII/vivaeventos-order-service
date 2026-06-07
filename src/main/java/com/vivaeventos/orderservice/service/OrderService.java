@@ -27,10 +27,13 @@ public class OrderService {
 
     private final OrderRepository repository;
     private final OrderEventPublisher publisher;
+    private final AuditLogService auditLogService;
 
-    public OrderService(OrderRepository repository, OrderEventPublisher publisher) {
+    public OrderService(OrderRepository repository, OrderEventPublisher publisher,
+                        AuditLogService auditLogService) {
         this.repository = repository;
         this.publisher = publisher;
+        this.auditLogService = auditLogService;
     }
 
     @Transactional
@@ -68,6 +71,8 @@ public class OrderService {
                 .build();
 
         Order saved = repository.save(order);
+        auditLogService.record(saved.getId(), null, "PENDING",
+                "Orden creada por el cliente", "CLIENT");
         publisher.publishOrderCreated(saved);
         return saved;
     }
@@ -85,6 +90,8 @@ public class OrderService {
         order.setStatus("CONFIRMED");
         order.setUpdatedAt(LocalDateTime.now());
         repository.save(order);
+        auditLogService.record(orderId, "PENDING", "CONFIRMED",
+                "Pago confirmado por la pasarela de pagos", "PAYMENT_GATEWAY");
         publisher.publishOrderConfirmed(order);
     }
 
@@ -95,6 +102,8 @@ public class OrderService {
         order.setStatus("CANCELLED");
         order.setUpdatedAt(LocalDateTime.now());
         repository.save(order);
+        auditLogService.record(orderId, order.getStatus(), "CANCELLED",
+                "Orden cancelada. Motivo: " + motivo, "SYSTEM");
         publisher.publishOrderCancelled(order, motivo);
     }
 
@@ -105,14 +114,12 @@ public class OrderService {
         order.setStatus("PAYMENT_PROCESSING");
         order.setUpdatedAt(LocalDateTime.now());
         repository.save(order);
+        auditLogService.record(orderId, "PENDING", "PAYMENT_PROCESSING",
+                "Procesando pago con pasarela", "SYSTEM");
     }
 
     /**
      * Registra la solicitud de devolución.
-     *
-     * Criterio 1: "Dado que el evento fue cancelado cuando el cliente solicita
-     * devolución entonces el sistema debe registrar la solicitud."
-     *
      * Flujo:
      *  1. Buscar la orden por ID (lanza 404 si no existe)
      *  2. Validar que la orden puede ser devuelta (debe estar CONFIRMED)
@@ -144,6 +151,8 @@ public class OrderService {
 
         // 4. Persistir en BD
         Order saved = repository.save(order);
+        auditLogService.record(orderId, "CONFIRMED", "REFUND_REQUESTED",
+                "Cliente solicitó devolución. Motivo: " + request.reason(), "CLIENT");
 
         // 5. Publicar evento en Kafka
         // notification-service lo consume y envía email de confirmación al cliente
