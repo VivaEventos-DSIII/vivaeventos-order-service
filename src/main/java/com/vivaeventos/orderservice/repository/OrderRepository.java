@@ -123,14 +123,14 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
      * @param status  estado de la orden (se pasa "CONFIRMED")
      */
     @Query("""
-            SELECT FUNCTION('hour', o.createdAt),
+            SELECT EXTRACT(hour from o.createdAt),
                    COUNT(o),
                    COALESCE(SUM(o.quantity), 0)
             FROM Order o
             WHERE o.eventId = :eventId
               AND o.status = :status
-            GROUP BY FUNCTION('hour', o.createdAt)
-            ORDER BY FUNCTION('hour', o.createdAt)
+            GROUP BY EXTRACT(hour from o.createdAt)
+            ORDER BY EXTRACT(hour from o.createdAt)
             """)
     List<Object[]> findSalesByHour(
             @Param("eventId") UUID eventId,

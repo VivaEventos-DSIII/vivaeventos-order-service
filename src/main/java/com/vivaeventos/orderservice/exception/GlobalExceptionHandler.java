@@ -31,6 +31,15 @@ public class GlobalExceptionHandler {
         ));
     }
 
+    // 400 cuando la orden no está en un estado válido para la operación solicitada
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorBody(
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getMessage()
+        ));
+    }
+
     // 400 cuando el request tiene campos inválidos (@NotNull, @Min, etc.)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {

@@ -6,9 +6,9 @@ spring:
     name: order-service
 
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:orderdb}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${DB_NAME:orderdb}
     username: ${DB_USER:vivaeventos}
-    password: ${DB_PASSWORD:change_me_in_production}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -70,6 +70,7 @@ kafka:
     order-created: order.created
     order-confirmed: order.confirmed
     order-cancelled: order.cancelled
+    order-refund-requested: order.refund-requested   # nuevo topic para devoluciones
     payment-confirmed: payment.confirmed
     payment-failed: payment.failed
     payment-pending: payment.pending
