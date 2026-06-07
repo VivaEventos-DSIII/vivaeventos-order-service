@@ -156,17 +156,9 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
             @Param("status") String status
     );
 
-    // Métodos a agregar en OrderRepository.java
-
     // ─────────────────────────────────────────────────────────────────────────
     // US-15: Análisis de comportamiento de compra por cliente
     // ─────────────────────────────────────────────────────────────────────────
-
-    /**
-     * Obtiene todas las órdenes CONFIRMADAS de un cliente.
-     * Base para calcular todos los patrones de comportamiento.
-     */
-    List<Order> findByCustomerIdAndStatus(UUID customerId, String status);
 
     /**
      * Cuenta el total de órdenes confirmadas de un cliente.
@@ -188,7 +180,7 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
      * Patrón 1: valor total del cliente.
      */
     @Query("""
-            SELECT COALESCE(SUM(o.totalAmount), 0)
+            SELECT SUM(o.totalAmount)
             FROM Order o
             WHERE o.customerId = :customerId
               AND o.status = :status
