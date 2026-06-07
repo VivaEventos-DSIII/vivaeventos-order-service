@@ -11,6 +11,8 @@ import com.vivaeventos.orderservice.exception.OrderNotFoundException;
 import com.vivaeventos.orderservice.kafka.OrderEventPublisher;
 import com.vivaeventos.orderservice.module.Order;
 import com.vivaeventos.orderservice.repository.OrderRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +26,8 @@ import java.util.UUID;
 
 @Service
 public class OrderService {
+
+    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
     private final OrderRepository repository;
     private final OrderEventPublisher publisher;
@@ -82,6 +86,10 @@ public class OrderService {
     public void confirmOrder(UUID orderId) {
         Order order = repository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));
+        if (!"PAYMENT_PROCESSING".equals(order.getStatus()) && !"AWAITING_PAYMENT".equals(order.getStatus())) {
+            log.warn("Ignorando confirmación de pago para orden {} en estado {}", orderId, order.getStatus());
+            return;
+        }
         order.setStatus("CONFIRMED");
         order.setUpdatedAt(LocalDateTime.now());
         repository.save(order);
@@ -92,6 +100,10 @@ public class OrderService {
     public void cancelOrder(UUID orderId, String motivo) {
         Order order = repository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));
+        if ("CANCELLED".equals(order.getStatus()) || "REFUND_REQUESTED".equals(order.getStatus())) {
+            log.warn("Ignorando cancelación para orden {} en estado {}", orderId, order.getStatus());
+            return;
+        }
         order.setStatus("CANCELLED");
         order.setUpdatedAt(LocalDateTime.now());
         repository.save(order);
@@ -102,6 +114,10 @@ public class OrderService {
     public void markPaymentPending(UUID orderId) {
         Order order = repository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));
+        if (!"PENDING".equals(order.getStatus()) && !"AWAITING_PAYMENT".equals(order.getStatus())) {
+            log.warn("Ignorando transición a PAYMENT_PROCESSING para orden {} en estado {}", orderId, order.getStatus());
+            return;
+        }
         order.setStatus("PAYMENT_PROCESSING");
         order.setUpdatedAt(LocalDateTime.now());
         repository.save(order);
