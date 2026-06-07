@@ -155,4 +155,82 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
             @Param("eventId") UUID eventId,
             @Param("status") String status
     );
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // US-15: Análisis de comportamiento de compra por cliente
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Cuenta el total de órdenes confirmadas de un cliente.
+     * Patrón 1: frecuencia de compra.
+     */
+    @Query("""
+            SELECT COUNT(o)
+            FROM Order o
+            WHERE o.customerId = :customerId
+              AND o.status = :status
+            """)
+    long countOrdersByCustomerId(
+            @Param("customerId") UUID customerId,
+            @Param("status") String status
+    );
+
+    /**
+     * Calcula el total gastado por un cliente.
+     * Patrón 1: valor total del cliente.
+     */
+    @Query("""
+            SELECT SUM(o.totalAmount)
+            FROM Order o
+            WHERE o.customerId = :customerId
+              AND o.status = :status
+            """)
+    BigDecimal sumTotalSpentByCustomer(
+            @Param("customerId") UUID customerId,
+            @Param("status") String status
+    );
+
+    /**
+     * Obtiene desglose de compras por tipo de boleta para un cliente.
+     * Patrón 2: tipo de boleta preferida.
+     *
+     * Retorna: [ticketType, count(orders), sum(quantity), sum(totalAmount)]
+     */
+    @Query("""
+            SELECT o.ticketType,
+                   COUNT(o),
+                   COALESCE(SUM(o.quantity), 0),
+                   COALESCE(SUM(o.totalAmount), 0)
+            FROM Order o
+            WHERE o.customerId = :customerId
+              AND o.status = :status
+            GROUP BY o.ticketType
+            ORDER BY COUNT(o) DESC
+            """)
+    List<Object[]> findTicketTypeBreakdownByCustomer(
+            @Param("customerId") UUID customerId,
+            @Param("status") String status
+    );
+
+    /**
+     * Obtiene los eventos más comprados por un cliente.
+     * Patrón 3: eventos de interés del cliente.
+     *
+     * Retorna: [eventId, count(orders), sum(quantity), sum(totalAmount)]
+     */
+    @Query("""
+            SELECT o.eventId,
+                   COUNT(o),
+                   COALESCE(SUM(o.quantity), 0),
+                   COALESCE(SUM(o.totalAmount), 0)
+            FROM Order o
+            WHERE o.customerId = :customerId
+              AND o.status = :status
+            GROUP BY o.eventId
+            ORDER BY COUNT(o) DESC
+            """)
+    List<Object[]> findTopEventsByCustomer(
+            @Param("customerId") UUID customerId,
+            @Param("status") String status
+    );
 }
