@@ -23,6 +23,8 @@ public class Order {
 
     private UUID customerId;
 
+    private String customerEmail;
+
     private String ticketType;
 
     private Integer quantity;

@@ -11,10 +11,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/orders")
+@RequestMapping("/orders")
 public class OrderController {
 
     private final OrderService service;
@@ -24,8 +25,11 @@ public class OrderController {
     }
 
     @PostMapping
-    public ResponseEntity<OrderResponse> create(@Valid @RequestBody CreateOrderRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.createOrder(request));
+    public ResponseEntity<OrderResponse> create(
+            @RequestHeader("X-User-Email") String userEmail,
+            @Valid @RequestBody CreateOrderRequest request) {
+        UUID customerId = UUID.nameUUIDFromBytes(userEmail.getBytes(StandardCharsets.UTF_8));
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.createOrder(request, customerId, userEmail));
     }
 
     @GetMapping("/{id}")
@@ -56,8 +60,9 @@ public class OrderController {
     @PostMapping("/{id}/refund")
     public ResponseEntity<OrderResponse> requestRefund(
             @PathVariable UUID id,
+            @RequestHeader("X-User-Email") String userEmail,
             @Valid @RequestBody RefundRequest request) {
-        OrderResponse response = service.requestRefund(id, request);
+        OrderResponse response = service.requestRefund(id, request, userEmail);
         return ResponseEntity.ok(response);
     }
 

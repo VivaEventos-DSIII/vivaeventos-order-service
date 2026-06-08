@@ -77,10 +77,10 @@ class OrderServiceRefundTest {
     void dadoOrdenConfirmada_cuandoSeSolicitaDevolucion_entoncesEstadoCambiaARefundRequested() {
         // GIVEN
         when(repository.findById(orderId)).thenReturn(Optional.of(confirmedOrder));
-        RefundRequest request = new RefundRequest("cliente@email.com", "EVENTO_CANCELADO");
+        RefundRequest request = new RefundRequest("EVENTO_CANCELADO");
 
         // WHEN
-        OrderResponse response = orderService.requestRefund(orderId, request);
+        OrderResponse response = orderService.requestRefund(orderId, request, "cliente@email.com");
 
         // THEN — criterio 1: solicitud registrada en BD
         assertThat(response.status()).isEqualTo("REFUND_REQUESTED");
@@ -91,10 +91,10 @@ class OrderServiceRefundTest {
     void dadoOrdenConfirmada_cuandoSeSolicitaDevolucion_entoncesSePublicaEventoEnKafka() {
         // GIVEN
         when(repository.findById(orderId)).thenReturn(Optional.of(confirmedOrder));
-        RefundRequest request = new RefundRequest("cliente@email.com", "EVENTO_CANCELADO");
+        RefundRequest request = new RefundRequest("EVENTO_CANCELADO");
 
         // WHEN
-        orderService.requestRefund(orderId, request);
+        orderService.requestRefund(orderId, request, "cliente@email.com");
 
         // THEN — se publica en Kafka para que notification-service envíe confirmación
         verify(publisher).publishRefundRequested(any(Order.class), eq("cliente@email.com"), eq("EVENTO_CANCELADO"));
@@ -104,10 +104,10 @@ class OrderServiceRefundTest {
     void dadoOrdenConfirmada_cuandoSeSolicitaDevolucion_entoncesEventoKafkaContieneMontoCorrect() {
         // GIVEN
         when(repository.findById(orderId)).thenReturn(Optional.of(confirmedOrder));
-        RefundRequest request = new RefundRequest("cliente@email.com", "EVENTO_CANCELADO");
+        RefundRequest request = new RefundRequest("EVENTO_CANCELADO");
 
         // WHEN
-        orderService.requestRefund(orderId, request);
+        orderService.requestRefund(orderId, request, "cliente@email.com");
 
         // THEN — el evento de Kafka tiene el monto correcto para mostrarlo en el email
         ArgumentCaptor<Order> orderCaptor = ArgumentCaptor.forClass(Order.class);
@@ -128,10 +128,10 @@ class OrderServiceRefundTest {
     void dadoOrdenNoExiste_cuandoSeSolicitaDevolucion_entoncesLanzaOrderNotFoundException() {
         // GIVEN
         when(repository.findById(orderId)).thenReturn(Optional.empty());
-        RefundRequest request = new RefundRequest("cliente@email.com", "EVENTO_CANCELADO");
+        RefundRequest request = new RefundRequest("EVENTO_CANCELADO");
 
         // WHEN / THEN
-        assertThatThrownBy(() -> orderService.requestRefund(orderId, request))
+        assertThatThrownBy(() -> orderService.requestRefund(orderId, request, "cliente@email.com"))
                 .isInstanceOf(OrderNotFoundException.class);
 
         // No debe publicar nada en Kafka
@@ -143,10 +143,10 @@ class OrderServiceRefundTest {
         // GIVEN — orden en estado PENDING (no pagada aún)
         confirmedOrder.setStatus("PENDING");
         when(repository.findById(orderId)).thenReturn(Optional.of(confirmedOrder));
-        RefundRequest request = new RefundRequest("cliente@email.com", "EVENTO_CANCELADO");
+        RefundRequest request = new RefundRequest("EVENTO_CANCELADO");
 
         // WHEN / THEN — no se puede devolver algo que no está pagado
-        assertThatThrownBy(() -> orderService.requestRefund(orderId, request))
+        assertThatThrownBy(() -> orderService.requestRefund(orderId, request, "cliente@email.com"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("PENDING");
 
@@ -158,10 +158,10 @@ class OrderServiceRefundTest {
         // GIVEN — orden ya cancelada
         confirmedOrder.setStatus("CANCELLED");
         when(repository.findById(orderId)).thenReturn(Optional.of(confirmedOrder));
-        RefundRequest request = new RefundRequest("cliente@email.com", "EVENTO_CANCELADO");
+        RefundRequest request = new RefundRequest("EVENTO_CANCELADO");
 
         // WHEN / THEN
-        assertThatThrownBy(() -> orderService.requestRefund(orderId, request))
+        assertThatThrownBy(() -> orderService.requestRefund(orderId, request, "cliente@email.com"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("CANCELLED");
 
@@ -173,10 +173,10 @@ class OrderServiceRefundTest {
         // GIVEN — orden que ya tiene una solicitud de devolución en curso
         confirmedOrder.setStatus("REFUND_REQUESTED");
         when(repository.findById(orderId)).thenReturn(Optional.of(confirmedOrder));
-        RefundRequest request = new RefundRequest("cliente@email.com", "EVENTO_CANCELADO");
+        RefundRequest request = new RefundRequest("EVENTO_CANCELADO");
 
         // WHEN / THEN — no se puede solicitar devolución duplicada
-        assertThatThrownBy(() -> orderService.requestRefund(orderId, request))
+        assertThatThrownBy(() -> orderService.requestRefund(orderId, request, "cliente@email.com"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("REFUND_REQUESTED");
 

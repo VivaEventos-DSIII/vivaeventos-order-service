@@ -41,16 +41,16 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponse createOrder(CreateOrderRequest request) {
+    public OrderResponse createOrder(CreateOrderRequest request, UUID customerId, String customerEmail) {
         if (request.idempotencyKey() != null) {
             return repository.findByIdempotencyKey(request.idempotencyKey())
                     .map(OrderResponse::from)
-                    .orElseGet(() -> OrderResponse.from(saveNewOrder(request)));
+                    .orElseGet(() -> OrderResponse.from(saveNewOrder(request, customerId, customerEmail)));
         }
-        return OrderResponse.from(saveNewOrder(request));
+        return OrderResponse.from(saveNewOrder(request, customerId, customerEmail));
     }
 
-    private Order saveNewOrder(CreateOrderRequest request) {
+    private Order saveNewOrder(CreateOrderRequest request, UUID customerId, String customerEmail) {
         BigDecimal unitPrice = resolvePrecio(request.ticketType());
         BigDecimal discountPct = BigDecimal.ZERO;
         BigDecimal total = unitPrice
@@ -62,7 +62,8 @@ public class OrderService {
         Order order = Order.builder()
                 .id(UUID.randomUUID())
                 .eventId(request.eventId())
-                .customerId(request.customerId())
+                .customerId(customerId)
+                .customerEmail(customerEmail)
                 .ticketType(request.ticketType())
                 .quantity(request.quantity())
                 .unitPrice(unitPrice)
@@ -151,7 +152,7 @@ public class OrderService {
      * @return OrderResponse con el estado actualizado
      */
     @Transactional
-    public OrderResponse requestRefund(UUID orderId, RefundRequest request) {
+    public OrderResponse requestRefund(UUID orderId, RefundRequest request, String userEmail) {
         // 1. Buscar la orden
         Order order = repository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));
@@ -177,7 +178,7 @@ public class OrderService {
         // notification-service lo consume y envía email de confirmación al cliente
         // (criterio 2: "dado que la devolución se procesa entonces el cliente
         //  debe recibir confirmación")
-        publisher.publishRefundRequested(saved, request.userEmail(), request.reason());
+        publisher.publishRefundRequested(saved, userEmail, request.reason());
 
         return OrderResponse.from(saved);
     }

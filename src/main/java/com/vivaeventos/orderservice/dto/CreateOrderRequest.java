@@ -10,9 +10,6 @@ public record CreateOrderRequest(
         @NotNull(message = "eventId es obligatorio")
         UUID eventId,
 
-        @NotNull(message = "customerId es obligatorio")
-        UUID customerId,
-
         @NotNull(message = "ticketType es obligatorio")
         String ticketType,
 

@@ -41,10 +41,13 @@ public class OrderEventPublisher {
     }
 
     public void publishOrderConfirmed(Order order) {
+        String email = order.getCustomerEmail() != null ? order.getCustomerEmail() : "";
+        String userName = email.contains("@") ? email.substring(0, email.indexOf('@')) : email;
         OrderConfirmedEvent event = new OrderConfirmedEvent(
-                order.getId(), order.getEventId(), order.getCustomerId(),
+                order.getId(), order.getCustomerId(), email, userName,
+                order.getTotalAmount(), order.getEventId(),
                 order.getTicketType(), order.getQuantity(), order.getUnitPrice(),
-                order.getDiscountPct(), order.getTotalAmount(), order.getUpdatedAt()
+                order.getDiscountPct(), order.getUpdatedAt()
         );
         kafkaTemplate.send(orderConfirmedTopic, order.getId().toString(), event);
     }

@@ -6,12 +6,14 @@ import java.util.UUID;
 
 public record OrderConfirmedEvent(
         UUID orderId,
+        UUID userId,
+        String userEmail,
+        String userName,
+        BigDecimal amount,
         UUID eventId,
-        UUID customerId,
         String ticketType,
         int quantity,
         BigDecimal unitPrice,
         BigDecimal discountPct,
-        BigDecimal totalAmount,
         LocalDateTime confirmedAt
 ) {}
