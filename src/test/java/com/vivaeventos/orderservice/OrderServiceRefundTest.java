@@ -28,12 +28,16 @@ import static org.mockito.Mockito.*;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import com.vivaeventos.orderservice.service.AuditLogService;
+
+
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class OrderServiceRefundTest {
 
     @Mock private OrderRepository repository;
     @Mock private OrderEventPublisher publisher;
+    @Mock private AuditLogService auditLogService;
     @InjectMocks private OrderService orderService;
 
     private UUID orderId;
