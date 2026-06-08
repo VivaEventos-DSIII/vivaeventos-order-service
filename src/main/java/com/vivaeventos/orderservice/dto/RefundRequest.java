@@ -1,7 +1,6 @@
 package com.vivaeventos.orderservice.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Email;
 
 /**
@@ -15,7 +14,7 @@ import jakarta.validation.constraints.Email;
  */
 public record RefundRequest(
 
-        @NotNull(message = "El email del cliente es obligatorio")
+        @NotBlank(message = "El email del cliente es obligatorio")
         @Email(message = "El email debe tener formato válido")
         String userEmail,
 

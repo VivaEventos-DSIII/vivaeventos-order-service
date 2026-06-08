@@ -26,7 +26,7 @@ CREATE TABLE orders (
     total_amount    NUMERIC(12, 2) NOT NULL,
     promo_code_id   UUID           REFERENCES promo_codes(id),
     status          VARCHAR(50)    NOT NULL DEFAULT 'PENDING',
-    -- PENDING | AWAITING_PAYMENT | PAYMENT_PROCESSING | CONFIRMED | CANCELLED | REFUNDED
+    -- PENDING | AWAITING_PAYMENT | PAYMENT_PROCESSING | CONFIRMED | CANCELLED | REFUND_REQUESTED | REFUNDED
     idempotency_key VARCHAR(255)   UNIQUE,   -- RQ-14: evitar cobros duplicados
     created_at      TIMESTAMP      NOT NULL DEFAULT now(),
     updated_at      TIMESTAMP      NOT NULL DEFAULT now()

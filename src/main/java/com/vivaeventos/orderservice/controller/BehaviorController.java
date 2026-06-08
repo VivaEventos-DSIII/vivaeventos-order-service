@@ -40,8 +40,7 @@ public class BehaviorController {
      *   "summary": "Cliente con 5 compras..."
      * }
      *
-     * HTTP 200 → análisis generado (incluye caso sin historial)
-     * HTTP 404 → si el cliente no existe (manejado por GlobalExceptionHandler)
+     * HTTP 200 → análisis generado (incluye caso sin historial ni compras registradas)
      */
     @GetMapping("/{customerId}/behavior")
     public ResponseEntity<CustomerBehaviorResponse> getCustomerBehavior(

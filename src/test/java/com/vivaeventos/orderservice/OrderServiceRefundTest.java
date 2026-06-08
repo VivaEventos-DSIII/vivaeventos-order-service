@@ -167,4 +167,19 @@ class OrderServiceRefundTest {
 
         verify(publisher, never()).publishRefundRequested(any(), any(), any());
     }
+
+    @Test
+    void dadoOrdenYaEnDevolucion_cuandoSeSolicitaDevolucionDeNuevo_entoncesLanzaIllegalStateException() {
+        // GIVEN — orden que ya tiene una solicitud de devolución en curso
+        confirmedOrder.setStatus("REFUND_REQUESTED");
+        when(repository.findById(orderId)).thenReturn(Optional.of(confirmedOrder));
+        RefundRequest request = new RefundRequest("cliente@email.com", "EVENTO_CANCELADO");
+
+        // WHEN / THEN — no se puede solicitar devolución duplicada
+        assertThatThrownBy(() -> orderService.requestRefund(orderId, request))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("REFUND_REQUESTED");
+
+        verify(publisher, never()).publishRefundRequested(any(), any(), any());
+    }
 }

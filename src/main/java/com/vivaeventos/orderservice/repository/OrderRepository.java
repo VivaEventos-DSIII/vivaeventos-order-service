@@ -123,14 +123,14 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
      * @param status  estado de la orden (se pasa "CONFIRMED")
      */
     @Query("""
-            SELECT FUNCTION('hour', o.createdAt),
+            SELECT EXTRACT(hour from o.createdAt),
                    COUNT(o),
                    COALESCE(SUM(o.quantity), 0)
             FROM Order o
             WHERE o.eventId = :eventId
               AND o.status = :status
-            GROUP BY FUNCTION('hour', o.createdAt)
-            ORDER BY FUNCTION('hour', o.createdAt)
+            GROUP BY EXTRACT(hour from o.createdAt)
+            ORDER BY EXTRACT(hour from o.createdAt)
             """)
     List<Object[]> findSalesByHour(
             @Param("eventId") UUID eventId,
@@ -156,17 +156,9 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
             @Param("status") String status
     );
 
-    // Métodos a agregar en OrderRepository.java
-
     // ─────────────────────────────────────────────────────────────────────────
     // US-15: Análisis de comportamiento de compra por cliente
     // ─────────────────────────────────────────────────────────────────────────
-
-    /**
-     * Obtiene todas las órdenes CONFIRMADAS de un cliente.
-     * Base para calcular todos los patrones de comportamiento.
-     */
-    List<Order> findByCustomerIdAndStatus(UUID customerId, String status);
 
     /**
      * Cuenta el total de órdenes confirmadas de un cliente.
@@ -188,7 +180,7 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
      * Patrón 1: valor total del cliente.
      */
     @Query("""
-            SELECT COALESCE(SUM(o.totalAmount), 0)
+            SELECT SUM(o.totalAmount)
             FROM Order o
             WHERE o.customerId = :customerId
               AND o.status = :status
