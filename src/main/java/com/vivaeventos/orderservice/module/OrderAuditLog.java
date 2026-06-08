@@ -2,6 +2,7 @@ package com.vivaeventos.orderservice.module;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -45,8 +46,8 @@ public class OrderAuditLog {
     @Column(name = "triggered_by")
     private String triggeredBy;       // "SYSTEM", "CLIENT", "PAYMENT_GATEWAY"
 
-    @Column(name = "created_at", nullable = false,
-            insertable = false, updatable = false,
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false,
             columnDefinition = "TIMESTAMP DEFAULT now()")
     private LocalDateTime createdAt;
 }

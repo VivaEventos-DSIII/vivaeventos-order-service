@@ -1,8 +1,10 @@
 package com.vivaeventos.orderservice.service;
 
 import com.vivaeventos.orderservice.dto.AuditLogResponse;
+import com.vivaeventos.orderservice.exception.OrderNotFoundException;
 import com.vivaeventos.orderservice.module.OrderAuditLog;
 import com.vivaeventos.orderservice.repository.OrderAuditLogRepository;
+import com.vivaeventos.orderservice.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,7 @@ import java.util.UUID;
 public class AuditLogService {
 
     private final OrderAuditLogRepository auditLogRepository;
+    private final OrderRepository orderRepository;
 
     /**
      * Registra un cambio de estado en el log de auditoría.
@@ -80,6 +83,9 @@ public class AuditLogService {
     @Transactional(readOnly = true)
     public List<AuditLogResponse> getAuditLog(UUID orderId) {
         log.info("Consultando historial de auditoría para orden {}", orderId);
+        if (!orderRepository.existsById(orderId)) {
+            throw new OrderNotFoundException(orderId);
+        }
         return auditLogRepository
                 .findByOrderIdOrderByCreatedAtAsc(orderId)
                 .stream()

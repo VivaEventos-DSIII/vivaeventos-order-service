@@ -87,10 +87,11 @@ public class OrderService {
     public void confirmOrder(UUID orderId) {
         Order order = repository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));
+        String previousStatus = order.getStatus();
         order.setStatus("CONFIRMED");
         order.setUpdatedAt(LocalDateTime.now());
         repository.save(order);
-        auditLogService.record(orderId, "PENDING", "CONFIRMED",
+        auditLogService.record(orderId, previousStatus, "CONFIRMED",
                 "Pago confirmado por la pasarela de pagos", "PAYMENT_GATEWAY");
         publisher.publishOrderConfirmed(order);
     }
@@ -99,10 +100,15 @@ public class OrderService {
     public void cancelOrder(UUID orderId, String motivo) {
         Order order = repository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));
+        if ("CANCELLED".equals(order.getStatus()) || "REFUND_REQUESTED".equals(order.getStatus())) {
+            throw new IllegalStateException(
+                    "No se puede cancelar una orden en estado: " + order.getStatus());
+        }
+        String previousStatus = order.getStatus();
         order.setStatus("CANCELLED");
         order.setUpdatedAt(LocalDateTime.now());
         repository.save(order);
-        auditLogService.record(orderId, order.getStatus(), "CANCELLED",
+        auditLogService.record(orderId, previousStatus, "CANCELLED",
                 "Orden cancelada. Motivo: " + motivo, "SYSTEM");
         publisher.publishOrderCancelled(order, motivo);
     }
@@ -111,10 +117,11 @@ public class OrderService {
     public void markPaymentPending(UUID orderId) {
         Order order = repository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));
+        String previousStatus = order.getStatus();
         order.setStatus("PAYMENT_PROCESSING");
         order.setUpdatedAt(LocalDateTime.now());
         repository.save(order);
-        auditLogService.record(orderId, "PENDING", "PAYMENT_PROCESSING",
+        auditLogService.record(orderId, previousStatus, "PAYMENT_PROCESSING",
                 "Procesando pago con pasarela", "SYSTEM");
     }
 
