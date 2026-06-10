@@ -11,7 +11,7 @@ import java.util.UUID;
  * Controller para el análisis de comportamiento de compra.
  */
 @RestController
-@RequestMapping("/api/orders/customers")
+@RequestMapping("/orders/customers")
 public class BehaviorController {
 
     private final BehaviorAnalysisService behaviorAnalysisService;
