@@ -76,7 +76,7 @@ public class OrderService {
                 .build();
 
         Order saved = repository.save(order);
-        auditLogService.record(saved.getId(), null, "PENDING",
+        auditLogService.record(saved.getId(), null, "CONFIRMED",
                 "Orden creada por el cliente", "CLIENT");
         publisher.publishOrderCreated(saved);
         return saved;
